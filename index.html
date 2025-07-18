@@ -7,13 +7,40 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>💣 MineRaid</h1>
-  <div id="game-info">
-    <span>Mines: <span id="mine-count">0</span></span>
-    <span>Time: <span id="timer">0</span>s</span>
+  <div id="game-container">
+    <h1>💣 MineRaid</h1>
+
+    <div id="menu">
+      <label>Difficulty:
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
+      <button id="startBtn">Start Game</button>
+    </div>
+
+    <div id="stats">
+      ⏱️ Time: <span id="timer">0</span>s |
+      💥 Clicks: <span id="clicks">0</span>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="game-over" class="hidden">
+      <h2 id="result-text"></h2>
+      <input type="text" id="player-name" placeholder="Your name" />
+      <button id="saveScoreBtn">Save Score</button>
+      <button id="restartBtn">Restart</button>
+    </div>
+
+    <div id="leaderboard-section">
+      <h2>🏆 Leaderboard</h2>
+      <ul id="leaderboard"></ul>
+      <button id="resetLeaderboardBtn">Reset Leaderboard</button>
+    </div>
   </div>
-  <div id="game-board"></div>
-  <button onclick="startGame()">🔁 New Game</button>
 
   <script src="script.js"></script>
 </body>
