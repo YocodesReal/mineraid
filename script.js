@@ -1,154 +1,207 @@
-const rows = 9;
-const cols = 9;
-const mineCount = 10;
-let board = [];
-let timer = 0;
-let interval;
-let gameOver = false;
+<script>
+const board = document.getElementById("board");
+const difficulty = document.getElementById("difficulty");
+const timer = document.getElementById("timer");
+const minesLeft = document.getElementById("mines-left");
+const gameOverScreen = document.getElementById("game-over");
+const finalScore = document.getElementById("final-score");
+const leaderboardList = document.getElementById("leaderboard");
+let grid = [];
+let rows = 10;
+let cols = 10;
+let mineCount = 10;
+let revealedCount = 0;
+let gameEnded = false;
+let flagCount = 0;
+let timerInterval;
+let seconds = 0;
 
-function startGame() {
-  gameOver = false;
-  board = [];
-  clearInterval(interval);
-  timer = 0;
-  document.getElementById('timer').textContent = 0;
-  document.getElementById('mine-count').textContent = mineCount;
-  document.getElementById('game-board').innerHTML = '';
-  generateBoard();
-  interval = setInterval(() => {
-    timer++;
-    document.getElementById('timer').textContent = timer;
-  }, 1000);
+function setupGame() {
+  board.innerHTML = "";
+  gameEnded = false;
+  revealedCount = 0;
+  flagCount = 0;
+  seconds = 0;
+  gameOverScreen.classList.add("hidden");
+  clearInterval(timerInterval);
+  timer.textContent = "0";
+  updateBoardSize();
+  updateMineCount();
+  generateGrid();
+  startTimer();
 }
 
-function generateBoard() {
-  const boardElement = document.getElementById('game-board');
-  boardElement.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
+function updateBoardSize() {
+  const value = difficulty.value;
+  if (value === "easy") {
+    rows = cols = 8;
+    mineCount = 10;
+  } else if (value === "medium") {
+    rows = cols = 12;
+    mineCount = 25;
+  } else {
+    rows = cols = 16;
+    mineCount = 50;
+  }
+  board.style.gridTemplateColumns = `repeat(${cols}, 34px)`;
+}
 
+function updateMineCount() {
+  minesLeft.textContent = mineCount - flagCount;
+}
+
+function generateGrid() {
+  grid = [];
+  let minesPlaced = 0;
   for (let r = 0; r < rows; r++) {
-    board[r] = [];
+    const row = [];
     for (let c = 0; c < cols; c++) {
       const cell = {
-        row: r,
-        col: c,
-        mine: false,
+        element: document.createElement("div"),
+        hasMine: false,
         revealed: false,
         flagged: false,
-        element: document.createElement('div'),
-        adjacentMines: 0,
+        r, c, count: 0,
       };
-      cell.element.classList.add('cell');
-      cell.element.addEventListener('click', () => revealCell(r, c));
-      cell.element.addEventListener('contextmenu', (e) => {
+      cell.element.classList.add("cell");
+      cell.element.addEventListener("click", () => revealCell(cell));
+      cell.element.addEventListener("contextmenu", (e) => {
         e.preventDefault();
-        toggleFlag(r, c);
+        toggleFlag(cell);
       });
-      boardElement.appendChild(cell.element);
-      board[r][c] = cell;
+      board.appendChild(cell.element);
+      row.push(cell);
     }
+    grid.push(row);
   }
 
-  placeMines();
-  calculateAdjacents();
-}
-
-function placeMines() {
-  let placed = 0;
-  while (placed < mineCount) {
+  while (minesPlaced < mineCount) {
     const r = Math.floor(Math.random() * rows);
     const c = Math.floor(Math.random() * cols);
-    if (!board[r][c].mine) {
-      board[r][c].mine = true;
-      placed++;
+    if (!grid[r][c].hasMine) {
+      grid[r][c].hasMine = true;
+      minesPlaced++;
     }
   }
-}
 
-function calculateAdjacents() {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      let count = 0;
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          const nr = r + i;
-          const nc = c + j;
-          if (
-            nr >= 0 && nr < rows &&
-            nc >= 0 && nc < cols &&
-            board[nr][nc].mine
-          ) {
-            count++;
-          }
-        }
-      }
-      board[r][c].adjacentMines = count;
+      grid[r][c].count = countNeighborMines(r, c);
     }
   }
 }
 
-function revealCell(r, c) {
-  const cell = board[r][c];
-  if (cell.revealed || cell.flagged || gameOver) return;
+function countNeighborMines(r, c) {
+  let count = 0;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].hasMine) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
 
+function revealCell(cell) {
+  if (cell.revealed || cell.flagged || gameEnded) return;
   cell.revealed = true;
-  cell.element.classList.add('revealed');
-
-  if (cell.mine) {
-    cell.element.textContent = '💣';
-    cell.element.classList.add('mine');
+  cell.element.classList.add("revealed");
+  revealedCount++;
+  if (cell.hasMine) {
+    cell.element.classList.add("mine");
     endGame(false);
-    return;
-  }
-
-  if (cell.adjacentMines > 0) {
-    cell.element.textContent = cell.adjacentMines;
-    cell.element.dataset.num = cell.adjacentMines;
   } else {
-    for (let i = -1; i <= 1; i++) {
-      for (let j = -1; j <= 1; j++) {
-        const nr = r + i;
-        const nc = c + j;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-          revealCell(nr, nc);
-        }
+    if (cell.count > 0) {
+      cell.element.textContent = cell.count;
+    } else {
+      revealAdjacent(cell);
+    }
+    checkWin();
+  }
+}
+
+function revealAdjacent(cell) {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = cell.r + dr, nc = cell.c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+        revealCell(grid[nr][nc]);
       }
     }
   }
-
-  checkWin();
 }
 
-function toggleFlag(r, c) {
-  const cell = board[r][c];
-  if (cell.revealed || gameOver) return;
-
+function toggleFlag(cell) {
+  if (cell.revealed || gameEnded) return;
   cell.flagged = !cell.flagged;
-  cell.element.classList.toggle('flagged');
-  cell.element.textContent = cell.flagged ? '🚩' : '';
-}
-
-function endGame(win) {
-  clearInterval(interval);
-  gameOver = true;
-  if (!win) {
-    alert('💥 Boom! You hit a mine!');
-  } else {
-    alert('🎉 You win!');
-  }
-
-  board.flat().forEach(cell => {
-    if (cell.mine && !cell.revealed) {
-      cell.element.classList.add('revealed', 'mine');
-      cell.element.textContent = '💣';
-    }
-  });
+  cell.element.classList.toggle("flagged", cell.flagged);
+  cell.element.textContent = cell.flagged ? "⚑" : "";
+  flagCount += cell.flagged ? 1 : -1;
+  updateMineCount();
 }
 
 function checkWin() {
-  const unrevealed = board.flat().filter(cell => !cell.revealed);
-  if (unrevealed.length === mineCount) {
+  if (revealedCount === rows * cols - mineCount) {
     endGame(true);
   }
 }
 
-window.onload = startGame;
+function endGame(won) {
+  gameEnded = true;
+  clearInterval(timerInterval);
+  if (won) {
+    const score = seconds + mineCount * 5;
+    finalScore.textContent = `Your score: ${score}`;
+    gameOverScreen.classList.remove("hidden");
+    saveScore(score);
+    updateLeaderboard();
+  } else {
+    revealAllMines();
+    finalScore.textContent = "Game Over!";
+    gameOverScreen.classList.remove("hidden");
+  }
+}
+
+function revealAllMines() {
+  grid.flat().forEach(cell => {
+    if (cell.hasMine) {
+      cell.element.classList.add("mine");
+      cell.element.textContent = "💣";
+    }
+  });
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    seconds++;
+    timer.textContent = seconds;
+  }, 1000);
+}
+
+function saveScore(score) {
+  let scores = JSON.parse(localStorage.getItem("mineraid_scores")) || [];
+  scores.push({ score, time: new Date().toLocaleTimeString() });
+  scores.sort((a, b) => a.score - b.score);
+  scores = scores.slice(0, 10); // top 10
+  localStorage.setItem("mineraid_scores", JSON.stringify(scores));
+}
+
+function updateLeaderboard() {
+  const scores = JSON.parse(localStorage.getItem("mineraid_scores")) || [];
+  leaderboardList.innerHTML = "";
+  scores.forEach(entry => {
+    const li = document.createElement("li");
+    li.textContent = `⏱ ${entry.score} pts at ${entry.time}`;
+    leaderboardList.appendChild(li);
+  });
+}
+
+document.getElementById("start").addEventListener("click", setupGame);
+difficulty.addEventListener("change", setupGame);
+
+// Start with default game
+setupGame();
+updateLeaderboard();
+</script>
