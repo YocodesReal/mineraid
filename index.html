@@ -1,47 +1,409 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MineRaid</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MineRaid</title>
+<style>
+  /* CSS: Dark neon Minesweeper style */
+  * {
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+  }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #000;
+    color: #0f0;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem;
+    background-image: radial-gradient(circle at center, #001a00, #000);
+  }
+  #game-container {
+    max-width: 650px;
+    width: 100%;
+    padding: 2rem;
+    border: 2px solid #0f0;
+    border-radius: 14px;
+    background-color: #111;
+    box-shadow: 0 0 40px rgba(0, 255, 0, 0.3);
+    animation: glowBox 2s ease-in-out infinite alternate;
+  }
+  @keyframes glowBox {
+    from { box-shadow: 0 0 20px rgba(0,255,0,0.2); }
+    to { box-shadow: 0 0 40px rgba(0,255,0,0.4); }
+  }
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 12px #0f0, 0 0 24px #0f0;
+    letter-spacing: 1px;
+  }
+  #menu, #stats {
+    margin: 1.2rem 0;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  select, button {
+    background: black;
+    color: lime;
+    border: 1px solid lime;
+    padding: 0.6rem 1rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  button:hover, select:hover {
+    background-color: #030;
+    transform: scale(1.07);
+    box-shadow: 0 0 8px lime;
+  }
+  #board {
+    display: grid;
+    justify-content: center;
+    margin: 1.5rem auto;
+    gap: 2px;
+  }
+  .cell {
+    width: 34px;
+    height: 34px;
+    background-color: #111;
+    border: 1px solid #0f0;
+    color: #0f0;
+    font-size: 1rem;
+    text-align: center;
+    line-height: 34px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.1s ease;
+  }
+  .cell.revealed {
+    background-color: #222;
+    color: #0f0;
+    border: 1px solid #090;
+  }
+  .cell.flagged {
+    background-color: #330;
+    color: gold;
+    font-weight: bold;
+  }
+  .cell.mine {
+    background-color: red;
+    color: #fff;
+  }
+  #game-over {
+    margin-top: 1.5rem;
+    animation: fadeIn 1s ease forwards;
+  }
+  .hidden {
+    display: none;
+  }
+  #game-over input {
+    padding: 0.5rem;
+    font-size: 1rem;
+    margin: 0.3rem;
+    background: black;
+    border: 1px solid lime;
+    color: lime;
+    border-radius: 4px;
+  }
+  #leaderboard-section {
+    margin-top: 2rem;
+    background-color: #010;
+    border: 1px solid #030;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  #leaderboard {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+  }
+  #leaderboard li {
+    margin: 0.4rem 0;
+    font-family: monospace;
+    color: #0f0;
+    font-size: 1rem;
+  }
+  footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #0f0;
+    text-shadow: 0 0 4px #060;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
 <body>
-  <div id="game-container">
-    <h1>💣 MineRaid</h1>
-
-    <div id="menu">
-      <label>Difficulty:
-        <select id="difficulty">
-          <option value="easy">Easy</option>
-          <option value="medium" selected>Medium</option>
-          <option value="hard">Hard</option>
-        </select>
-      </label>
-      <button id="startBtn">Start Game</button>
-    </div>
-
-    <div id="stats">
-      ⏱️ Time: <span id="timer">0</span>s |
-      💥 Clicks: <span id="clicks">0</span>
-    </div>
-
-    <div id="board"></div>
-
-    <div id="game-over" class="hidden">
-      <h2 id="result-text"></h2>
-      <input type="text" id="player-name" placeholder="Your name" />
-      <button id="saveScoreBtn">Save Score</button>
-      <button id="restartBtn">Restart</button>
-    </div>
-
-    <div id="leaderboard-section">
-      <h2>🏆 Leaderboard</h2>
-      <ul id="leaderboard"></ul>
-      <button id="resetLeaderboardBtn">Reset Leaderboard</button>
-    </div>
+<div id="game-container">
+  <h1>💣 MineRaid</h1>
+  <div id="menu">
+    <label for="difficulty">Difficulty:</label>
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button id="start">Start Game</button>
   </div>
+  <div id="stats">
+    <span>⏱ Time: <span id="timer">0</span>s</span>
+    <span>💣 Mines Left: <span id="mines-left">0</span></span>
+  </div>
+  <div id="board"></div>
+  <div id="game-over" class="hidden">
+    <p id="final-score"></p>
+    <input id="player-name" placeholder="Enter your name" />
+    <button id="saveScoreBtn">Save Score</button>
+    <button id="restartBtn">Restart</button>
+  </div>
+  <section id="leaderboard-section">
+    <h2>🏆 Leaderboard</h2>
+    <ul id="leaderboard"></ul>
+    <button id="resetLeaderboardBtn">Reset Leaderboard</button>
+  </section>
+</div>
+<footer>Made with ❤️ by Yocodes Studios | v2.0</footer>
 
-  <script src="script.js"></script>
+<script>
+  const board = document.getElementById("board");
+  const difficulty = document.getElementById("difficulty");
+  const timerElem = document.getElementById("timer");
+  const minesLeftElem = document.getElementById("mines-left");
+  const gameOverScreen = document.getElementById("game-over");
+  const finalScore = document.getElementById("final-score");
+  const leaderboardList = document.getElementById("leaderboard");
+  const saveScoreBtn = document.getElementById("saveScoreBtn");
+  const restartBtn = document.getElementById("restartBtn");
+  const resetLeaderboardBtn = document.getElementById("resetLeaderboardBtn");
+  const playerNameInput = document.getElementById("player-name");
+  const startBtn = document.getElementById("start");
+
+  let grid = [];
+  let rows = 10;
+  let cols = 10;
+  let mineCount = 10;
+  let revealedCount = 0;
+  let gameEnded = false;
+  let flagCount = 0;
+  let timerInterval;
+  let seconds = 0;
+
+  function setupGame() {
+    board.innerHTML = "";
+    gameEnded = false;
+    revealedCount = 0;
+    flagCount = 0;
+    seconds = 0;
+    gameOverScreen.classList.add("hidden");
+    playerNameInput.value = "";
+    clearInterval(timerInterval);
+    timerElem.textContent = "0";
+    minesLeftElem.textContent = mineCount;
+    updateBoardSize();
+    generateGrid();
+    startTimer();
+  }
+
+  function updateBoardSize() {
+    const value = difficulty.value;
+    if (value === "easy") {
+      rows = cols = 8;
+      mineCount = 10;
+    } else if (value === "medium") {
+      rows = cols = 12;
+      mineCount = 25;
+    } else {
+      rows = cols = 16;
+      mineCount = 50;
+    }
+    board.style.gridTemplateColumns = `repeat(${cols}, 34px)`;
+    minesLeftElem.textContent = mineCount;
+  }
+
+  function generateGrid() {
+    grid = [];
+    let minesPlaced = 0;
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols; c++) {
+        const cell = {
+          element: document.createElement("div"),
+          hasMine: false,
+          revealed: false,
+          flagged: false,
+          r, c, count: 0,
+        };
+        cell.element.classList.add("cell");
+        cell.element.addEventListener("click", () => revealCell(cell));
+        cell.element.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          toggleFlag(cell);
+        });
+        board.appendChild(cell.element);
+        row.push(cell);
+      }
+      grid.push(row);
+    }
+
+    while (minesPlaced < mineCount) {
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      if (!grid[r][c].hasMine) {
+        grid[r][c].hasMine = true;
+        minesPlaced++;
+      }
+    }
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        grid[r][c].count = countNeighborMines(r, c);
+      }
+    }
+  }
+
+  function countNeighborMines(r, c) {
+    let count = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].hasMine) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  function revealCell(cell) {
+    if (cell.revealed || cell.flagged || gameEnded) return;
+    cell.revealed = true;
+    cell.element.classList.add("revealed");
+    revealedCount++;
+    if (cell.hasMine) {
+      cell.element.classList.add("mine");
+      endGame(false);
+    } else {
+      if (cell.count > 0) {
+        cell.element.textContent = cell.count;
+      } else {
+        revealAdjacent(cell);
+      }
+      checkWin();
+    }
+  }
+
+  function revealAdjacent(cell) {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = cell.r + dr, nc = cell.c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          revealCell(grid[nr][nc]);
+        }
+      }
+    }
+  }
+
+  function toggleFlag(cell) {
+    if (cell.revealed || gameEnded) return;
+    cell.flagged = !cell.flagged;
+    cell.element.classList.toggle("flagged", cell.flagged);
+    cell.element.textContent = cell.flagged ? "⚑" : "";
+    flagCount += cell.flagged ? 1 : -1;
+    minesLeftElem.textContent = mineCount - flagCount;
+  }
+
+  function checkWin() {
+    if (revealedCount === rows * cols - mineCount) {
+      endGame(true);
+    }
+  }
+
+  function endGame(won) {
+    gameEnded = true;
+    clearInterval(timerInterval);
+    if (won) {
+      finalScore.textContent = `You Win! Time: ${seconds}s | Clicks: ${revealedCount + flagCount}`;
+    } else {
+      revealAllMines();
+      finalScore.textContent = "Game Over!";
+    }
+    gameOverScreen.classList.remove("hidden");
+  }
+
+  function revealAllMines() {
+    grid.flat().forEach(cell => {
+      if (cell.hasMine) {
+        cell.element.classList.add("mine");
+        cell.element.textContent = "💣";
+      }
+    });
+  }
+
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      seconds++;
+      timerElem.textContent = seconds;
+    }, 1000);
+  }
+
+  function saveScore() {
+    if (playerNameInput.value.trim() === "") {
+      alert("Please enter your name to save score.");
+      return;
+    }
+    const scores = JSON.parse(localStorage.getItem("mineraid_scores")) || [];
+    scores.push({ 
+      name: playerNameInput.value.trim(), 
+      time: seconds, 
+      clicks: revealedCount + flagCount, 
+      difficulty: difficulty.value, 
+      date: new Date().toLocaleDateString()
+    });
+    scores.sort((a,b) => a.time - b.time);
+    localStorage.setItem("mineraid_scores", JSON.stringify(scores.slice(0,10)));
+    updateLeaderboard();
+    gameOverScreen.classList.add("hidden");
+  }
+
+  function updateLeaderboard() {
+    const scores = JSON.parse(localStorage.getItem("mineraid_scores")) || [];
+    leaderboardList.innerHTML = "";
+    if (scores.length === 0) {
+      leaderboardList.innerHTML = "<li>No scores yet.</li>";
+      return;
+    }
+    scores.forEach(({name, time, clicks, difficulty, date}) => {
+      const li = document.createElement("li");
+      li.textContent = `${name} - ${difficulty.toUpperCase()} - Time: ${time}s - Clicks: ${clicks} - ${date}`;
+      leaderboardList.appendChild(li);
+    });
+  }
+
+  startBtn.addEventListener("click", setupGame);
+  saveScoreBtn.addEventListener("click", saveScore);
+  restartBtn.addEventListener("click", setupGame);
+  resetLeaderboardBtn.addEventListener("click", () => {
+    if(confirm("Clear leaderboard?")) {
+      localStorage.removeItem("mineraid_scores");
+      updateLeaderboard();
+    }
+  });
+
+  // Start initial game and leaderboard on load
+  setupGame();
+  updateLeaderboard();
+</script>
 </body>
 </html>
