@@ -23,9 +23,8 @@ function startGame() {
 
 function generateBoard() {
   const boardElement = document.getElementById('game-board');
-  boardElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+  boardElement.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
 
-  // Create empty board
   for (let r = 0; r < rows; r++) {
     board[r] = [];
     for (let c = 0; c < cols; c++) {
@@ -96,12 +95,14 @@ function revealCell(r, c) {
 
   if (cell.mine) {
     cell.element.textContent = '💣';
+    cell.element.classList.add('mine');
     endGame(false);
     return;
   }
 
   if (cell.adjacentMines > 0) {
     cell.element.textContent = cell.adjacentMines;
+    cell.element.dataset.num = cell.adjacentMines;
   } else {
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
@@ -135,10 +136,9 @@ function endGame(win) {
     alert('🎉 You win!');
   }
 
-  // Reveal all mines
   board.flat().forEach(cell => {
     if (cell.mine && !cell.revealed) {
-      cell.element.classList.add('revealed');
+      cell.element.classList.add('revealed', 'mine');
       cell.element.textContent = '💣';
     }
   });
@@ -151,5 +151,4 @@ function checkWin() {
   }
 }
 
-// Start game on load
 window.onload = startGame;
